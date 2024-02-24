@@ -69,14 +69,25 @@ class Branch(Element):
 		self.color = average(self.p1.color,self.p2.color)
 		pygame.draw.line(fenetre,self.color,pp1,pp2,size)
 
-	pass
+	def get_mid(self):
+		return average(self.p1.pos,self.p2.pos)
+	
+	def get_angle(self):
+		x1, y1 = self.p1.pos
+		x2, y2 = self.p2.pos
+		angle_radians = math.atan2(y2 - y1, x2 - x1)
 
-class Leave:
-	pass
+		return math.degrees(angle_radians)
 
+
+
+	
 class Tree:
 	liste = set()
-	def __init__(self,angle:tuple,pos,root=None,size=100,time2live=10,scope=70,color=(130,130,130),absolute_scope=(20,-200),tick=1,tolerance=15,chance_of_branch=1):
+	def __init__(self,angle:tuple,pos:tuple,root=None,size:int=100,time2live:int=10,
+			  scope:int=70,color:tuple=(130,130,130),absolute_scope:tuple=(20,-200),tick:float=1,
+			  tolerance:float=15,chance_of_branch:float=1,chance_of_leave:float=0.5):
+		
 		Tree.liste.add(self)
 		self.root = root
 		self.tick = tick
@@ -89,6 +100,7 @@ class Tree:
 			self.growing = False
 		self.tolerance = tolerance
 		self.chance_of_branch = chance_of_branch
+		self.chance_of_leave = chance_of_leave
 		self.pos = pos
 		
 
@@ -97,7 +109,13 @@ class Tree:
 		self.points = set()
 		self.branchs= set()
 		self.trees = set()
+		self.leaves = set()
+
 		self.intermediate = 5
+		if self.size/(self.intermediate+1)< tolerance:
+			raise ValueError(f"Tolerance {tolerance} and nbItermediate {self.intermediate} are incompatible")
+		if max(color) > 255 or min(color) < 0 or len(color) != 3:
+			raise ValueError(f"color {color} must be a tuple of 3 float beetween 0 and 255")
 
 
 		p1 = Point(self.pos,1,color)
@@ -151,12 +169,6 @@ class Tree:
 			angle = self.angle
 
 		new_pos = tools.Vector(self.head.pos) +tools.create_vector_angle(self.size,angle)
-
-
-
-		if  self.point_collid(new_pos):
-			self.dying()
-			return 
 		
 		#create intermediate point for avoid collision on the line
 		for k in range(1,self.intermediate):
@@ -178,9 +190,21 @@ class Tree:
 
 		self.points.add(p1)
 		self.branchs.add(new_branch)
+		if random() < self.chance_of_leave:
+			self.grow_leaves(new_branch)
 
 		self.head = p1
 	
+	def grow_leaves(self,branch:Branch):
+		mid = branch.get_mid()
+		angle = self.angle+choice([-45,45])
+		distance = self.size/2
+		new_pos = tools.Vector(mid)+ tools.create_vector_angle(distance,angle)
+		leave = Leave(mid,self,new_pos,self.head.color)
+		self.leaves.add(leave)
+
+
+
 	def point_collid(self,pos,visited=None):
 		if visited ==None:
 			visited = set()
@@ -204,6 +228,8 @@ class Tree:
 			branch.draw(*args)
 		for tree in self.trees:
 			tree.draw(*args)
+		for leave in self.leaves:
+			leave.draw(*args)
 
 
 	def dying(self):
@@ -225,4 +251,12 @@ class Tree:
 	
 	def get_varation_scope(self):
 		return self.scope
-	
+
+class Leave:
+	def __init__(self,origine:tuple,root:Tree,center:tuple,color:tuple=(255,255,255)) -> None:
+		self.p_origine = Point(origine,1,color)
+		self.p_center = Point(center,30,color)
+		self.branche = Branch(self.p_center,self.p_origine,10)
+	def draw(self,*args):
+		self.branche.draw(*args)
+		self.p_center.draw(*args)
