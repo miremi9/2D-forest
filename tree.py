@@ -4,7 +4,7 @@ import tools
 import math
 import time
 
-from random import randint,random,choice
+from random import randint,random,choice,shuffle
 
 def minus_cam(pos,cam_pos):
 	return pos[0]-cam_pos[0],pos[1]-cam_pos[1] 
@@ -76,27 +76,24 @@ class Leave:
 
 class Tree:
 	liste = set()
-	def __init__(self,angle:tuple,pos,root=None,time2live=None,scope=90,color=(130,130,130),absolute_scope=(0,-180)):
+	def __init__(self,angle:tuple,pos,root=None,size=100,time2live=10,scope=70,color=(130,130,130),absolute_scope=(20,-200),tick=1,tolerance=15,chance_of_branch=1):
 		Tree.liste.add(self)
 		self.root = root
-		if not time2live:
-			self.time2live = 20
-		else:
-			self.time2live = time2live
-		self.scope = 70
-		self.absolute_scope = absolute_scope
-
-		self.angle = angle
-		print(angle,self.angle)
-
-
-		self.tolerance = 15
-		self.chance_of_branch = 1
-		self.pos = pos
+		self.tick = tick
+		self.time2live = time2live	
+		self.timelived = 0
+		self.scope = scope
 		self.growing = True
+		self.absolute_scope = absolute_scope
+		if not tools.is_point_in_set(angle,absolute_scope):
+			self.growing = False
+		self.tolerance = tolerance
+		self.chance_of_branch = chance_of_branch
+		self.pos = pos
+		
 
 		self.angle = angle
-		self.size = 100
+		self.size = size
 		self.points = set()
 		self.branchs= set()
 		self.trees = set()
@@ -106,7 +103,6 @@ class Tree:
 		p1 = Point(self.pos,1,color)
 		self.head = p1
 		self.points.update({p1})
-		self.cooldown = 1
 		self.last_up = time.time()
 		self.color = color
 
@@ -120,23 +116,27 @@ class Tree:
 		for tree in self.trees:
 			tree.update(world,keys,dt,chunks_around)
 		
-		if time.time()-self.last_up > self.cooldown and self.growing:
+		if time.time()-self.last_up > self.tick and self.growing:
 			self.grow()
 			self.last_up = time.time()
 		return set()
 	
 	def grow(self):
-		self.time2live -=1
-		if self.time2live <0:
+		self.timelived +=1
+		if self.time2live <=self.timelived :
 			self.dying()
+			return
 
-		min_angle = int(self.angle-self.scope/2)
-		max_angle = int(self.angle+self.scope/2)
+		li = [x for x in [int(self.angle-self.scope/2),int(self.angle+self.scope/2)] if tools.is_point_in_set(x,self.absolute_scope) ]
 		if random()<self.chance_of_branch and len(self.branchs) !=0:	#create branch new tree
-			new_direct = choice([min_angle,max_angle])
-			color = tools.generate_color(self.color,variation=10)
-			t1 = Tree(new_direct,self.head.pos,self,self.time2live/1.5,self.scope*2/3,color)
-			self.trees.add(t1)
+			shuffle(li)
+			for a in li:
+				color = self.get_variation_color()
+				tick = self.get_variation_tick()
+				time2live = self.get_varation_time2live()
+				scope = self.get_varation_scope()
+				t1 = Tree(a,self.head.pos,self,time2live,scope,color,self.absolute_scope,tick,self.tolerance)
+				self.trees.add(t1)
 
 
 		min_angle = int(self.angle-self.scope/2)
@@ -172,10 +172,6 @@ class Tree:
 		if self.point_collid(new_pos):
 			self.dying()
 			return 
-		
-
-
-
 		p1 = Point(new_pos,1,self.color)
 		
 		new_branch = Branch(p1,self.head,10)
@@ -203,20 +199,30 @@ class Tree:
 				return True
 		return False
 		
-
-	def dying(self):
-		self.growing = False
-
-		for point in self.points:
-			#point.color = (255,0,0)
-			pass
-
 	def draw(self,*args):
-
 		for branch in self.branchs:
 			branch.draw(*args)
 		for tree in self.trees:
 			tree.draw(*args)
 
+
+	def dying(self):
+		self.growing = False
 		for point in self.points:
-			point.draw(*args)
+			#point.color = (255,0,0)
+			pass
+
+
+
+	def get_variation_color(self):
+		return tools.generate_color(self.color,variation=10)
+	
+	def get_variation_tick(self):
+		return self.tick*(0.5+random())
+	
+	def get_varation_time2live(self):
+		return self.time2live/1.2
+	
+	def get_varation_scope(self):
+		return self.scope
+	
