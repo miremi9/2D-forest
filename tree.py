@@ -135,7 +135,7 @@ class Tree:
 				tick = self.get_variation_tick()
 				time2live = self.get_varation_time2live()
 				scope = self.get_varation_scope()
-				t1 = Tree(a,self.head.pos,self,time2live,scope,color,self.absolute_scope,tick,self.tolerance)
+				t1 = Tree(a,self.head.pos,self,self.size,time2live,scope,color,self.absolute_scope,tick,self.tolerance)
 				self.trees.add(t1)
 
 
