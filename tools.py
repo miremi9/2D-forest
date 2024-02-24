@@ -1,6 +1,6 @@
 import math
 import pygame
-
+import random
 
 def distance(x,y):
     s = 0
@@ -114,3 +114,11 @@ def create_vector_angle(size, angle_degrees):
     x = size * math.cos(angle_radians)
     y = size * math.sin(angle_radians)
     return Vector((x,y))
+
+def generate_color(color,variation):
+    n_color = list()
+    for k in color:
+        x = (k+random.randint(-1,1)*variation)%256
+        n_color.append(x)
+    return n_color
+    

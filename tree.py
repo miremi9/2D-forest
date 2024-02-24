@@ -35,7 +35,7 @@ class Element:
 
 		
 class Point(Element):
-	def __init__(self,pos:tuple,diametre=5,color=(255,255,255)):
+	def __init__(self,pos:tuple,diametre=1,color=(255,255,255)):
 		super().__init__(pos,(diametre,diametre))
 		self.color = color
 	
@@ -58,7 +58,7 @@ class Branch(Element):
 		self.p1 = point1
 		self.p2 = point2
 		#angle
-		self.width = width
+		self.width = width/2
 		self.pos = point1.pos
 		self.color = average(point1.color,point2.color)
 
@@ -76,12 +76,22 @@ class Leave:
 
 class Tree:
 	liste = set()
-	def __init__(self,angle:tuple,pos,root=None):
+	def __init__(self,angle:tuple,pos,root=None,time2live=None,scope=90,color=(130,130,130),absolute_scope=(0,-180)):
 		Tree.liste.add(self)
 		self.root = root
-		self.scope = 45 #angle scope 
-		self.tolerance = 25
-		self.chance_of_branch = 0.75
+		if not time2live:
+			self.time2live = 20
+		else:
+			self.time2live = time2live
+		self.scope = 70
+		self.absolute_scope = absolute_scope
+
+		self.angle = angle
+		print(angle,self.angle)
+
+
+		self.tolerance = 15
+		self.chance_of_branch = 1
 		self.pos = pos
 		self.growing = True
 
@@ -90,13 +100,15 @@ class Tree:
 		self.points = set()
 		self.branchs= set()
 		self.trees = set()
+		self.intermediate = 5
 
 
-		p1 = Point(self.pos)
+		p1 = Point(self.pos,1,color)
 		self.head = p1
 		self.points.update({p1})
 		self.cooldown = 1
 		self.last_up = time.time()
+		self.color = color
 
 
 		self.augmente_head()
@@ -114,19 +126,23 @@ class Tree:
 		return set()
 	
 	def grow(self):
+		self.time2live -=1
+		if self.time2live <0:
+			self.dying()
 
 		min_angle = int(self.angle-self.scope/2)
 		max_angle = int(self.angle+self.scope/2)
-	
 		if random()<self.chance_of_branch and len(self.branchs) !=0:	#create branch new tree
 			new_direct = choice([min_angle,max_angle])
-			t1 = Tree(new_direct,self.head.pos,self)
+			color = tools.generate_color(self.color,variation=10)
+			t1 = Tree(new_direct,self.head.pos,self,self.time2live/1.5,self.scope*2/3,color)
 			self.trees.add(t1)
 
 
 		min_angle = int(self.angle-self.scope/2)
 		max_angle = int(self.angle+self.scope/2)
 		self.augmente_head(randint(min_angle,max_angle))
+
 
 
 
@@ -143,13 +159,24 @@ class Tree:
 			return 
 		
 		#create intermediate point for avoid collision on the line
-		inter_pos = tools.Vector(self.head.pos) +tools.create_vector_angle(self.size/3,angle)
-		self.points.add(Point(inter_pos))
-		inter_pos = tools.Vector(self.head.pos) +tools.create_vector_angle(2*self.size/3,angle)
-		self.points.add(Point(inter_pos))
-		#-------------------
+		for k in range(1,self.intermediate):
+			inter_pos = tools.Vector(self.head.pos) +tools.create_vector_angle(k*self.size/self.intermediate+1,angle)
+			if self.point_collid(inter_pos):
+				self.dying()
+				return
+			else:
+				self.points.add(Point(inter_pos))
 
-		p1 = Point(new_pos)
+		
+		#-------------------
+		if self.point_collid(new_pos):
+			self.dying()
+			return 
+		
+
+
+
+		p1 = Point(new_pos,1,self.color)
 		
 		new_branch = Branch(p1,self.head,10)
 
@@ -159,11 +186,12 @@ class Tree:
 		self.head = p1
 	
 	def point_collid(self,pos,visited=None):
-		
 		if visited ==None:
 			visited = set()
 		visited.add(self)
+		
 		if any(tools.distance(x.pos, pos) < self.tolerance for x in self.points):
+
 			return True
 		for tree in self.trees:
 			if tree in visited:			#AVOID INFINIT RECCURTION
@@ -175,18 +203,20 @@ class Tree:
 				return True
 		return False
 		
+
 	def dying(self):
 		self.growing = False
 
 		for point in self.points:
-			point.color = (255,0,0)
+			#point.color = (255,0,0)
+			pass
 
 	def draw(self,*args):
-		#for point in self.points:
-		#	point.draw(*args)
+
 		for branch in self.branchs:
 			branch.draw(*args)
 		for tree in self.trees:
 			tree.draw(*args)
 
-
+		for point in self.points:
+			point.draw(*args)
