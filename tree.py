@@ -1,10 +1,12 @@
 import pygame
-from tools import Vector
-import tools
 import math
 import time
-
 from random import randint,random,choice,shuffle
+
+from tools import Vector
+import tools
+import world
+
 
 def minus_cam(pos,cam_pos):
 	return pos[0]-cam_pos[0],pos[1]-cam_pos[1] 
@@ -84,6 +86,7 @@ class Branch(Element):
 	
 class Tree:
 	liste = set()
+	world = world.World(None,150)
 	def __init__(self,angle:tuple,pos:tuple,root=None,size:int=100,time2live:int=10,
 			  scope:int=70,color:tuple=(130,130,130),absolute_scope:tuple=(20,-200),tick:float=1,
 			  tolerance:float=15,chance_of_branch:float=1,chance_of_leave:float=0.5):
@@ -177,7 +180,7 @@ class Tree:
 				self.dying()
 				return
 			else:
-				self.points.add(Point(inter_pos))
+				Tree.world.add_element(Point(inter_pos))
 
 		
 		#-------------------
@@ -188,7 +191,8 @@ class Tree:
 		
 		new_branch = Branch(p1,self.head,10)
 
-		self.points.add(p1)
+		Tree.world.add_element(p1)
+
 		self.branchs.add(new_branch)
 		if random() < self.chance_of_leave:
 			self.grow_leaves(new_branch)
@@ -206,22 +210,16 @@ class Tree:
 
 
 	def point_collid(self,pos,visited=None):
-		if visited ==None:
-			visited = set()
-		visited.add(self)
-		
-		if any(tools.distance(x.pos, pos) < self.tolerance for x in self.points):
-
-			return True
-		for tree in self.trees:
-			if tree in visited:			#AVOID INFINIT RECCURTION
-				continue
-			if tree.point_collid(pos,visited):
+		num_chunk = Tree.world.get_chunk_number(pos)
+		chunks = Tree.world.get_chunks_around(num_chunk)
+		for chunk in chunks:
+			if any(tools.distance(x.pos, pos) < self.tolerance for x in chunk.get_all_elements()):
 				return True
-		if self.root and self.root not in visited:
-			if self.root.point_collid(pos,visited):
-				return True
+			
 		return False
+		#onliner of this mdr
+		#any(tools.distance(x.pos, pos) < self.tolerance for x in chunk.get_all_elements() for chunk in Tree.world.get_chunks_around(Tree.world.get_chunk_number(pos)))
+
 		
 	def draw(self,*args):
 		for branch in self.branchs:

@@ -46,7 +46,12 @@ class World:
 				if (x,y) in self.chunks:
 					output.add(self.chunks[(x,y)])
 		return output
-		
+	
+	def get_chunk_number(self,pos:tuple)->tuple:
+		x, y = pos
+		chunk_x = int(x // self.chunk_size)
+		chunk_y = int(y // self.chunk_size)
+		return (chunk_x, chunk_y)		
 
 class Chunk:
 	def __init__(self,num,element=None):
