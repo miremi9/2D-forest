@@ -115,20 +115,3 @@ def create_vector_angle(size, angle_degrees):
 	y = size * math.sin(angle_radians)
 	return Vector((x,y))
 
-def generate_color(color,variation):
-	n_color = list()
-	for k in color:
-		x = (k+random.randint(-1,1)*variation)%256
-		n_color.append(x)
-	return n_color
-#input x , lim lim tuple of 2 float, output : x if x in lim right border else:
-#exemple = -1 , (0,10) -> 0
-# 1 , (0,10) -> 1
-def is_point_in_set(pos,lim):
-		if pos< min(lim):
-			return False
-		elif pos > max(lim):
-			return False
-		return True
-		
-	
